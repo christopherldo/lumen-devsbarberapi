@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BarberController;
+use App\Http\Controllers\UserController;
+
 /** @var \Laravel\Lumen\Routing\Router $router */
 
 /*
