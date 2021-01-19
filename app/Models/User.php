@@ -19,6 +19,8 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
         'password'
     ];
 
+    public $timestamps = false;
+
     public function getJWTIdentifier()
     {
         return $this->getKey();

@@ -1,5 +1,6 @@
 /vendor
 /.idea
+/public/media/avatars/*.png
 Homestead.json
 Homestead.yaml
 .env

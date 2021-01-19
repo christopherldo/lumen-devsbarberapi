@@ -1,9 +1,5 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BarberController;
-use App\Http\Controllers\UserController;
-
 /** @var \Laravel\Lumen\Routing\Router $router */
 
 /*
@@ -21,6 +17,30 @@ use App\Http\Controllers\UserController;
 //     return $router->app->version();
 // });
 
-$router->get('ping', function(){
+$router->get('ping', function () {
     return ['pong' => true];
 });
+
+$router->group(['prefix' => 'auth'], function () use ($router) {
+    $router->post('login', 'AuthController@login');
+    $router->post('logout', 'AuthController@logout');
+    $router->post('refresh', 'AuthController@refresh');
+});
+
+$router->group(['prefix' => 'user'], function () use ($router) {
+    $router->post('/', 'UserController@create');
+    $router->get('/', 'UserController@read');
+    $router->put('/', 'UserController@update');
+    $router->post('favorite', 'UserController@addFavorite');
+    $router->get('favorites', 'UserController@getFavorites');
+    $router->get('appointments', 'UserController@getAppointments');
+});
+
+$router->group(['prefix' => 'barber'], function () use ($router) {
+    $router->get('{id}', 'BarberController@one');
+    $router->post('{id}/appointment', 'BarberController@setAppointment');
+});
+
+$router->get('barbers', 'BarberController@list');
+
+$router->get('search', 'SearchController@search');
