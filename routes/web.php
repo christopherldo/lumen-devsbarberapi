@@ -21,6 +21,8 @@ $router->get('ping', function () {
     return ['pong' => true];
 });
 
+// $router->get('random', 'BarberController@createRandom');
+
 $router->group(['prefix' => 'auth'], function () use ($router) {
     $router->post('login', 'AuthController@login');
     $router->post('logout', 'AuthController@logout');
@@ -28,12 +30,13 @@ $router->group(['prefix' => 'auth'], function () use ($router) {
 });
 
 $router->group(['prefix' => 'user'], function () use ($router) {
-    $router->post('/', 'UserController@create');
-    $router->get('/', 'UserController@read');
-    $router->put('/', 'UserController@update');
     $router->post('favorite', 'UserController@addFavorite');
     $router->get('favorites', 'UserController@getFavorites');
     $router->get('appointments', 'UserController@getAppointments');
+    $router->post('/', 'UserController@create');
+    $router->get('/', 'UserController@read');
+    $router->get('{id}', 'UserController@read');
+    $router->put('/', 'UserController@update');
 });
 
 $router->group(['prefix' => 'barber'], function () use ($router) {

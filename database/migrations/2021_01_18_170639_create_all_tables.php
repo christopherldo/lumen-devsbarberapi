@@ -70,7 +70,7 @@ class CreateAllTables extends Migration
             $table->string('name', 50);
             $table->text('desc')->nullable();
             $table->string('photo', 100)->nullable();
-            $table->decimal('price', 3, 2);
+            $table->string('price', 10);
         });
 
         Schema::create('barber_testimonials', function (Blueprint $table) {

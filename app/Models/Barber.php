@@ -10,7 +10,8 @@ class Barber extends Model
     use HasFactory;
 
     protected $hidden = [
-        'id'
+        'id',
+        'password'
     ];
 
     public $timestamps = false;

@@ -9,6 +9,8 @@ use App\Models\User;
 
 class UserController extends Controller
 {
+    private $loggedUser;
+
     public function __construct()
     {
         $this->middleware('auth:api', [
@@ -16,6 +18,8 @@ class UserController extends Controller
                 'create'
             ]
         ]);
+
+        $this->loggedUser = Auth::user();
     }
 
     public function create(Request $request)
@@ -73,6 +77,39 @@ class UserController extends Controller
             } else {
                 $array['error'] = 'Unexpected error. Please try logging again!';
             };
+        };
+
+        return $array;
+    }
+
+    public function read($id = false)
+    {
+        $array = [
+            'error' => ''
+        ];
+
+        if($id){
+            $validator = Validator::make(['public_id' => $id], [
+                'public_id' => 'uuid|exists:users'
+            ]);
+        } else {
+            $id = $this->loggedUser['public_id'];
+        };
+
+        if (isset($validator) && $validator->fails()) {
+            $array['error'] = $validator->errors();
+        } else {
+            $user = User::where('public_id', $id)->first();
+
+            $me = ($user['public_id'] === $this->loggedUser['public_id']) ?
+                true : false;
+
+            if($me === false){
+                unset($user['email']);
+                unset($user['telephone']);
+            };
+
+            $array['info'] = $user;
         };
 
         return $array;
