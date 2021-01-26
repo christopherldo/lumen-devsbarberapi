@@ -9,5 +9,9 @@ class BarberService extends Model
 {
     use HasFactory;
 
+    protected $hidden = [
+        'id'
+    ];
+
     public $timestamps = false;
 }

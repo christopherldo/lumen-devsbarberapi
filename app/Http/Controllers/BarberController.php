@@ -13,6 +13,7 @@ use App\Models\UserAppointment;
 use App\Models\UserFavorite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class BarberController extends Controller
 {
@@ -84,7 +85,7 @@ class BarberController extends Controller
 
             do {
                 $publicId = $this->generateUuid();
-            } while (User::where('public_id', $publicId)->count() !== 0);
+            } while (Barber::where('public_id', $publicId)->count() !== 0);
 
             $newBarber = new Barber();
             $newBarber->public_id = $publicId;
@@ -98,25 +99,40 @@ class BarberController extends Controller
             $newBarber->save();
 
             for ($w = 0; $w < 4; $w++) {
+                do {
+                    $publicId = $this->generateUuid();
+                } while (BarberPhoto::where('public_id', $publicId)->count() !== 0);
+
                 $newBarberPhoto = new BarberPhoto();
+                $newBarberPhoto->public_id = $publicId;
                 $newBarberPhoto->id_barber = $newBarber->public_id;
                 $newBarberPhoto->url = rand(1, 5) . '.webp';
                 $newBarberPhoto->save();
-            }
+            };
 
             $ns = rand(4, 6);
 
             for ($w = 0; $w < $ns; $w++) {
+                do {
+                    $publicId = $this->generateUuid();
+                } while (BarberService::where('public_id', $publicId)->count() !== 0);
+
                 $newBarberService = new BarberService();
+                $newBarberService->public_id = $publicId;
                 $newBarberService->id_barber = $newBarber->public_id;
                 $newBarberService->name = $services[rand(0, count($services) - 1)] .
                     ' de ' . $services2[rand(0, count($services) - 1)];
                 $newBarberService->price = rand(10, 99) . '.' . rand(0, 99);
                 $newBarberService->save();
-            }
+            };
 
             for ($w = 0; $w < 3; $w++) {
+                do {
+                    $publicId = $this->generateUuid();
+                } while (BarberTestimonial::where('public_id', $publicId)->count() !== 0);
+
                 $newBarberTestimonial = new BarberTestimonial();
+                $newBarberTestimonial->public_id = $publicId;
                 $newBarberTestimonial->id_barber = $newBarber->public_id;
                 $newBarberTestimonial->id_user = $this->generateUuid();
                 $newBarberTestimonial->name = $names[rand(0, count($names) - 1)] .
@@ -140,7 +156,12 @@ class BarberController extends Controller
                     $hours[] = $time . ':00';
                 };
 
+                do {
+                    $publicId = $this->generateUuid();
+                } while (BarberAvailability::where('public_id', $publicId)->count() !== 0);
+
                 $newBarberAvailability = new BarberAvailability();
+                $newBarberAvailability->public_id = $publicId;
                 $newBarberAvailability->id_barber = $newBarber->public_id;
                 $newBarberAvailability->weekday = $e;
                 $newBarberAvailability->hours = implode(',', $hours);
@@ -247,7 +268,7 @@ class BarberController extends Controller
             $isFavorited = UserFavorite::where('id_user', $this->loggedUser->public_id)
                 ->where('id_barber', $barber->public_id)->first();
 
-            if($isFavorited){
+            if ($isFavorited) {
                 $barber['favorited'] = true;
             };
 
@@ -259,7 +280,7 @@ class BarberController extends Controller
             };
 
             $barber['services'] = BarberService::select([
-                'id',
+                'public_id',
                 'name',
                 'desc',
                 'photo',
@@ -267,7 +288,7 @@ class BarberController extends Controller
             ])->where('id_barber', $barber->public_id)->get();
 
             $barber['testimonials'] = BarberTestimonial::select([
-                'id',
+                'public_id',
                 'id_user',
                 'name',
                 'rate',
@@ -315,7 +336,7 @@ class BarberController extends Controller
                         };
                     };
 
-                    if(count($hours) > 0) {
+                    if (count($hours) > 0) {
                         $availability[] = [
                             'date' => $dayItem,
                             'hours' => $hours
@@ -327,6 +348,126 @@ class BarberController extends Controller
             $barber['available'] = $availability;
 
             $array['data'] = $barber;
+        };
+
+        return $array;
+    }
+
+    public function setAppointment(Request $request, string $id)
+    {
+        $array = [
+            'error' => ''
+        ];
+
+        $data = $request->only([
+            'service',
+            'year',
+            'month',
+            'day',
+            'hour',
+            'minutes'
+        ]);
+
+        $data['public_id'] = $id;
+
+        $year = $data['year'] ?? '';
+        $month = $data['month'] ?? '';
+        $day = $data['day'] ?? '';
+        $hour = $data['hour'] ?? '';
+        $minutes = $data['minutes'] ?? '';
+
+        $data['ap_datetime'] = '';
+        $data['ap_weekday'] = '';
+        $data['ap_hour'] = '';
+
+        $data['today'] = gmdate('Y-m-d');
+
+        if ($year && $month && $day && ($hour || $hour === '0') && ($minutes || $minutes === '0')) {
+            if ($month < 10) {
+                $month = '0' . $month;
+            };
+
+            if ($day < 10) {
+                $day = '0' . $day;
+            };
+
+            if ($hour < 10) {
+                $hour = '0' . $hour;
+            };
+
+            if ($minutes < 10) {
+                $minutes = '0' . $minutes;
+            };
+
+            $date = "$year-$month-$day $hour:$minutes:00";
+
+            $data['ap_datetime'] = $date;
+            $data['ap_weekday'] = gmdate('w', strtotime($date));
+            $data['ap_hour'] = "$hour:$minutes";
+        };
+
+        $barberServices = BarberService::where('id_barber', $id)->pluck('public_id');
+        $availWeekdays = BarberAvailability::where('id_barber', $id)->pluck('weekday');
+
+        $availHours = [];
+
+        $apWeekday = $data['ap_weekday'] ?? '';
+
+        if ($apWeekday || $apWeekday === '0') {
+            $availHours = BarberAvailability::where('id_barber', $id)
+                ->where('weekday', $apWeekday)->first();
+
+            if ($availHours) {
+                $availHours = explode(',', $availHours['hours']);
+            };
+        };
+
+        $validator = Validator::make($data, [
+            'public_id' => 'string|uuid|exists:barbers',
+            'service' => [
+                'required',
+                'string',
+                'uuid',
+                'exists:barber_services,public_id',
+                Rule::in($barberServices)
+            ],
+            'year' => 'required|integer|min:1',
+            'month' => 'required|integer|min:1|max:12',
+            'day' => 'required|integer|min:1|max:31',
+            'hour' => 'required|integer|max:23',
+            'minutes' => 'required|integer|max:59',
+            'ap_weekday' => [
+                'required',
+                Rule::in($availWeekdays)
+            ],
+            'ap_hour' => [
+                'required',
+                Rule::in($availHours)
+            ],
+            'ap_datetime' => 'date|after_or_equal:today|unique:user_appointments'
+        ]);
+
+        if ($validator->fails()) {
+            $array['error'] = $validator->errors();
+        } else {
+            $service = $data['service'];
+            $apDatetime = $data['ap_datetime'];
+
+            do {
+                $publicId = $this->generateUuid();
+            } while (UserAppointment::where('public_id', $publicId)->count() !== 0);
+
+            $newAppointment = new UserAppointment();
+            $newAppointment->public_id = $publicId;
+            $newAppointment->id_user = $this->loggedUser['public_id'];
+            $newAppointment->id_barber = $id;
+            $newAppointment->id_service = $service;
+            $newAppointment->ap_datetime = $apDatetime;
+            $newAppointment->save();
+
+            $newAppointment->confirmed = false;
+
+            $array['data'] = $newAppointment;
         };
 
         return $array;

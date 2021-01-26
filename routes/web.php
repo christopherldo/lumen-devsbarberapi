@@ -30,7 +30,7 @@ $router->group(['prefix' => 'auth'], function () use ($router) {
 });
 
 $router->group(['prefix' => 'user'], function () use ($router) {
-    $router->post('favorite', 'UserController@addFavorite');
+    $router->post('favorite', 'UserController@toggleFavorite');
     $router->get('favorites', 'UserController@getFavorites');
     $router->get('appointments', 'UserController@getAppointments');
     $router->post('/', 'UserController@create');

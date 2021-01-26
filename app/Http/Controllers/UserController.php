@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
+use App\Models\UserFavorite;
+use App\Models\Barber;
 
 class UserController extends Controller
 {
@@ -88,7 +90,7 @@ class UserController extends Controller
             'error' => ''
         ];
 
-        if($id){
+        if ($id) {
             $validator = Validator::make(['public_id' => $id], [
                 'public_id' => 'uuid|exists:users'
             ]);
@@ -104,12 +106,77 @@ class UserController extends Controller
             $me = ($user['public_id'] === $this->loggedUser['public_id']) ?
                 true : false;
 
-            if($me === false){
+            if ($me === false) {
                 unset($user['email']);
                 unset($user['telephone']);
             };
 
             $array['info'] = $user;
+        };
+
+        return $array;
+    }
+
+    public function toggleFavorite(Request $request)
+    {
+        $array = [
+            'error' => ''
+        ];
+
+        $data = $request->only([
+            'barber'
+        ]);
+
+        $validator = Validator::make($data, [
+            'barber' => 'required|exists:barbers,public_id'
+        ]);
+
+        if ($validator->fails()) {
+            $array['error'] = $validator->errors();
+        } else {
+            $barberId = $data['barber'];
+
+            $favorite = UserFavorite::where('id_user', $this->loggedUser['public_id'])
+                ->where('id_barber', $barberId)->first();
+
+            if ($favorite) {
+                $array['data'] = $favorite;
+                $favorite->have = false;
+
+                $favorite->delete();
+            } else {
+                do {
+                    $publicId = $this->generateUuid();
+                } while (UserFavorite::where('public_id', $publicId)->count() !== 0);
+
+                $newFavorite = new UserFavorite();
+                $newFavorite->public_id = $publicId;
+                $newFavorite->id_user = $this->loggedUser['public_id'];
+                $newFavorite->id_barber = $barberId;
+                $newFavorite->save();
+
+                $newFavorite->have = true;
+
+                $array['data'] = $newFavorite;
+            };
+        };
+
+        return $array;
+    }
+
+    public function getFavorites()
+    {
+        $array = [
+            'error' => '',
+            'list' => []
+        ];
+
+        $favs = UserFavorite::where('id_user', $this->loggedUser['public_id'])->get();
+
+        foreach ($favs as $fav) {
+            $barber = Barber::where('public_id', $fav['id_barber'])->first();
+            $barber->avatar = url('/media/avatars/' . $barber->avatar);
+            $array['list'][] = $barber;
         };
 
         return $array;

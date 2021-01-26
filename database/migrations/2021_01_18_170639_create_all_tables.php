@@ -26,15 +26,19 @@ class CreateAllTables extends Migration
 
         Schema::create('user_favorites', function (Blueprint $table) {
             $table->id();
+            $table->uuid('public_id')->unique();
             $table->uuid('id_user');
             $table->uuid('id_barber');
         });
 
         Schema::create('user_appointments', function (Blueprint $table) {
             $table->id();
+            $table->uuid('public_id')->unique();
             $table->uuid('id_user');
             $table->uuid('id_barber');
+            $table->uuid('id_service');
             $table->dateTime('ap_datetime');
+            $table->boolean('confirmed')->default(0);
         });
 
         Schema::create('barbers', function (Blueprint $table) {
@@ -53,19 +57,14 @@ class CreateAllTables extends Migration
 
         Schema::create('barber_photos', function (Blueprint $table) {
             $table->id();
+            $table->uuid('public_id')->unique();
             $table->uuid('id_barber');
             $table->string('url', 100);
         });
 
-        Schema::create('barber_reviews', function (Blueprint $table) {
-            $table->id();
-            $table->uuid('id_barber');
-            $table->uuid('id_user');
-            $table->float('rate');
-        });
-
         Schema::create('barber_services', function (Blueprint $table) {
             $table->id();
+            $table->uuid('public_id')->unique();
             $table->uuid('id_barber');
             $table->string('name', 50);
             $table->text('desc')->nullable();
@@ -75,15 +74,17 @@ class CreateAllTables extends Migration
 
         Schema::create('barber_testimonials', function (Blueprint $table) {
             $table->id();
+            $table->uuid('public_id')->unique();
             $table->uuid('id_barber');
             $table->uuid('id_user');
             $table->string('name', 50);
             $table->decimal('rate', 2, 1);
-            $table->text('body');
+            $table->text('body')->nullable();
         });
 
         Schema::create('barber_availabilities', function (Blueprint $table) {
             $table->id();
+            $table->uuid('public_id')->unique();
             $table->uuid('id_barber');
             $table->tinyInteger('weekday');
             $table->text('hours');
@@ -102,7 +103,6 @@ class CreateAllTables extends Migration
         Schema::dropIfExists('user_appointments');
         Schema::dropIfExists('barbers');
         Schema::dropIfExists('barber_photos');
-        Schema::dropIfExists('barber_reviews');
         Schema::dropIfExists('barber_services');
         Schema::dropIfExists('barber_testimonials');
         Schema::dropIfExists('barber_availabilities');

@@ -9,5 +9,9 @@ class BarberTestimonial extends Model
 {
     use HasFactory;
 
+    protected $hidden = [
+        'id'
+    ];
+
     public $timestamps = false;
 }
