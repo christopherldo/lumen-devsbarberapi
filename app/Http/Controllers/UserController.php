@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use App\Models\UserFavorite;
 use App\Models\Barber;
+use App\Models\UserAppointment;
+use App\Models\BarberService;
+use DateTime;
+use Intervention\Image\ImageManager;
 
 class UserController extends Controller
 {
@@ -47,7 +51,7 @@ class UserController extends Controller
         if ($validator->fails()) {
             $array['error'] = $validator->errors();
         } else {
-            $name = $data['name'];
+            $name = ucwords($data['name']);
             $email = $data['email'];
             $password = $data['password'];
 
@@ -102,6 +106,8 @@ class UserController extends Controller
             $array['error'] = $validator->errors();
         } else {
             $user = User::where('public_id', $id)->first();
+
+            $user->avatar = url('/media/avatars/' . $user->avatar);
 
             $me = ($user['public_id'] === $this->loggedUser['public_id']) ?
                 true : false;
@@ -177,6 +183,161 @@ class UserController extends Controller
             $barber = Barber::where('public_id', $fav['id_barber'])->first();
             $barber->avatar = url('/media/avatars/' . $barber->avatar);
             $array['list'][] = $barber;
+        };
+
+        return $array;
+    }
+
+    public function getAppointments(Request $request)
+    {
+        $array = [
+            'error' => '',
+            'list' => []
+        ];
+
+        $data = $request->only([
+            'now'
+        ]);
+
+        $validator = Validator::make($data, [
+            'now' => 'required|date'
+        ]);
+
+        if ($validator->fails()) {
+            $array['error'] = $validator->errors();
+        } else {
+            $sentNow = new DateTime(date('Y-m-d H:i:s', strtotime($data['now'])));
+            $realNow = new DateTime(gmdate('Y-m-d H:i:s'));
+
+            $diffTime = date_diff($sentNow, $realNow);
+
+            $timezone = $diffTime->h;
+
+            if ($sentNow < $realNow) {
+                $timezone = '-' . $timezone;
+            };
+
+            $apps = UserAppointment::where('id_user', $this->loggedUser['public_id'])
+                ->orderBy('ap_datetime', 'DESC')->get();
+
+            foreach ($apps as $app) {
+                if (($diffTime->h >= -12 &&
+                        $diffTime->h <= 14 &&
+                        $diffTime->d === 0 &&
+                        $diffTime->m === 0 &&
+                        $diffTime->y === 0) &&
+                    gmdate('Y-m-d H:i:s', strtotime("$timezone hours")) < date('Y-m-d H:i:s', strtotime($app->ap_datetime))
+                ) {
+                    $barber = Barber::where('public_id', $app['id_barber'])->first();
+                    $barber->avatar = url('/media/avatars/' . $barber->avatar);
+
+                    $service = BarberService::where('public_id', $app['id_service'])->first();
+
+                    if ($service->photo) {
+                        $service->photo = url('/media/uploads/' . $service->photo);
+                    };
+
+                    $array['list'][] = [
+                        'public_id' => $app->public_id,
+                        'datetime' => $app->ap_datetime,
+                        'barber' => $barber,
+                        'service' => $service
+                    ];
+                };
+            };
+        };
+
+        return $array;
+    }
+
+    public function update(Request $request)
+    {
+        $array = [
+            'error' => ''
+        ];
+
+        $data = $request->only([
+            'name',
+            'email',
+            'password',
+            'password_confirmation',
+            'telephone'
+        ]);
+
+        $validator = Validator::make($data, [
+            'name' => 'string|min:2|max:50',
+            'email' => 'string|email|max:50|unique:users',
+            'password' => 'string|min:8|confirmed',
+            'telephone' => 'digits:11|numeric'
+        ]);
+
+        if ($validator->fails()) {
+            $array['error'] = $validator->errors();
+        } else {
+            $name = ucwords($data['name'] ?? '');
+            $email = $data['email'] ?? '';
+            $password = $data['password'] ?? '';
+            $telephone = $data['telephone'] ?? '';
+
+            $user = User::where('public_id', $this->loggedUser['public_id'])->first();
+
+            if ($name) {
+                $user->name = $name;
+            };
+
+            if ($email) {
+                $user->email = $email;
+            };
+
+            if ($password) {
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $user->password = $hash;
+            };
+
+            if ($telephone) {
+                $user->telephone = $telephone;
+            };
+
+            $user->save();
+
+            $user->avatar = url('/media/avatars/' . $user->avatar);
+
+            $array['data'] = $user;
+        };
+
+        return $array;
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $array = [
+            'error' => ''
+        ];
+
+        $data = $request->only([
+            'avatar'
+        ]);
+
+        $validator = Validator::make($data, [
+            'avatar' => 'required|image|mimes:png,jpg,jpeg,webp|max:10240'
+        ]);
+
+        if ($validator->fails()) {
+            $array['error'] = $validator->errors();
+        } else {
+            $avatar = $data['avatar'];
+
+            $avatarName = $this->loggedUser['public_id'] . '.webp';
+            $dest = public_path('/media/avatars/') . $avatarName;
+
+            $manager = new ImageManager();
+
+            $img = $manager->make($avatar->getRealPath())->fit(300, 300);
+            $img->save($dest);
+
+            $user = User::where('public_id', $this->loggedUser['public_id'])->first();
+            $user->avatar = $avatarName;
+            $user->save();
         };
 
         return $array;

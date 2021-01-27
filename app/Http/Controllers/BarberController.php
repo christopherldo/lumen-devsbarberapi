@@ -11,7 +11,9 @@ use App\Models\BarberService;
 use App\Models\BarberTestimonial;
 use App\Models\UserAppointment;
 use App\Models\UserFavorite;
+use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -365,7 +367,8 @@ class BarberController extends Controller
             'month',
             'day',
             'hour',
-            'minutes'
+            'minutes',
+            'now'
         ]);
 
         $data['public_id'] = $id;
@@ -379,8 +382,6 @@ class BarberController extends Controller
         $data['ap_datetime'] = '';
         $data['ap_weekday'] = '';
         $data['ap_hour'] = '';
-
-        $data['today'] = gmdate('Y-m-d');
 
         if ($year && $month && $day && ($hour || $hour === '0') && ($minutes || $minutes === '0')) {
             if ($month < 10) {
@@ -444,30 +445,41 @@ class BarberController extends Controller
                 'required',
                 Rule::in($availHours)
             ],
-            'ap_datetime' => 'date|after_or_equal:today|unique:user_appointments'
+            'now' => 'required|date',
+            'ap_datetime' => 'required|date|unique:user_appointments'
         ]);
 
         if ($validator->fails()) {
             $array['error'] = $validator->errors();
         } else {
-            $service = $data['service'];
+            $sentNow = new DateTime(date('Y-m-d H:i:s', strtotime($data['now'])));
+            $realNow = new DateTime(gmdate('Y-m-d H:i:s'));
+
+            $timezone = $sentNow->diff($realNow)->h;
+
             $apDatetime = $data['ap_datetime'];
 
-            do {
-                $publicId = $this->generateUuid();
-            } while (UserAppointment::where('public_id', $publicId)->count() !== 0);
+            if (($timezone >= -12 && $timezone <= 14) && gmdate('Y-m-d H:i:s', strtotime("$timezone hours")) > date('Y-m-d H:i:s', strtotime($apDatetime))) {
+                $array['error'] = 'The selected datetime must be equal or bigger than today (now)';
+            } else {
+                $service = $data['service'];
 
-            $newAppointment = new UserAppointment();
-            $newAppointment->public_id = $publicId;
-            $newAppointment->id_user = $this->loggedUser['public_id'];
-            $newAppointment->id_barber = $id;
-            $newAppointment->id_service = $service;
-            $newAppointment->ap_datetime = $apDatetime;
-            $newAppointment->save();
+                do {
+                    $publicId = $this->generateUuid();
+                } while (UserAppointment::where('public_id', $publicId)->count() !== 0);
 
-            $newAppointment->confirmed = false;
+                $newAppointment = new UserAppointment();
+                $newAppointment->public_id = $publicId;
+                $newAppointment->id_user = $this->loggedUser['public_id'];
+                $newAppointment->id_barber = $id;
+                $newAppointment->id_service = $service;
+                $newAppointment->ap_datetime = $apDatetime;
+                $newAppointment->save();
 
-            $array['data'] = $newAppointment;
+                $newAppointment->confirmed = false;
+
+                $array['data'] = $newAppointment;
+            };
         };
 
         return $array;

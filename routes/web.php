@@ -33,6 +33,7 @@ $router->group(['prefix' => 'user'], function () use ($router) {
     $router->post('favorite', 'UserController@toggleFavorite');
     $router->get('favorites', 'UserController@getFavorites');
     $router->get('appointments', 'UserController@getAppointments');
+    $router->post('avatar', 'UserController@updateAvatar');
     $router->post('/', 'UserController@create');
     $router->get('/', 'UserController@read');
     $router->get('{id}', 'UserController@read');
