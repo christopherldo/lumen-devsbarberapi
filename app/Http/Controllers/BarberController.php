@@ -227,11 +227,11 @@ class BarberController extends Controller
             $barbers = Barber::select(Barber::raw('
                 *, SQRT(POW(69.1 * (latitude - ' . $lat . '), 2) +
                 POW(69.1 * (' . $lng . ' - longitude) * COS(latitude / 57.3), 2)) AS distance
-            '))->havingRaw('distance <= ?', [$distance])->orderBy('distance', 'ASC')
-                ->offset($offset)->limit(5)->get();
+            '))->havingRaw('distance <= ?', [$distance])
+                ->orderBy('distance', 'ASC')->offset($offset)->limit(10)->get();
 
             foreach ($barbers as $key => $value) {
-                $barbers[$key]['avatar'] = url('/media/avatars/' . $barbers[$key]['avatar']);
+                $barbers[$key]['avatar'] = url('/media/barber-avatars/' . $barbers[$key]['avatar']);
             };
 
             if ($barbers) {
@@ -260,7 +260,7 @@ class BarberController extends Controller
             $array['error'] = $validator->errors();
         } else {
             $barber = Barber::where('public_id', $id)->first();
-            $barber->avatar = url('/media/avatars/' . $barber->avatar);
+            $barber->avatar = url('/media/barber-avatars/' . $barber->avatar);
             $barber->favorited = false;
             $barber->photos = [];
             $barber->services = [];
@@ -310,10 +310,10 @@ class BarberController extends Controller
 
             $appointments = [];
 
-            $days = 20;
+            $days = 92;
             $appQuery = UserAppointment::where('id_barber', $barber->public_id)
                 ->whereBetween('ap_datetime', [
-                    date('Y-m-d') . ' ' . '00:00:00',
+                    date('Y-m-d', strtotime("-12 hours")) . ' ' . '00:00:00',
                     date('Y-m-d', strtotime("+$days days")) . ' ' . '23:59:59'
                 ])->get();
 
@@ -321,7 +321,7 @@ class BarberController extends Controller
                 $appointments[] = $appItem['ap_datetime'];
             };
 
-            for ($q = 0; $q < $days; $q++) {
+            for ($q = -1; $q < $days; $q++) {
                 $timeItem = strtotime("+$q days");
                 $weekday = date('w', $timeItem);
 
@@ -453,14 +453,13 @@ class BarberController extends Controller
             $array['error'] = $validator->errors();
         } else {
             $sentNow = new DateTime(date('Y-m-d H:i:s', strtotime($data['now'])));
-            $realNow = new DateTime(gmdate('Y-m-d H:i:s'));
-
-            $timezone = $sentNow->diff($realNow)->h;
+            $minDate = new DateTime(gmdate('Y-m-d H:i:s', strtotime('-12 hours')));
+            $maxDate = new DateTime(gmdate('Y-m-d H:i:s', strtotime('+14 hours')));
 
             $apDatetime = $data['ap_datetime'];
 
-            if (($timezone >= -12 && $timezone <= 14) && gmdate('Y-m-d H:i:s', strtotime("$timezone hours")) > date('Y-m-d H:i:s', strtotime($apDatetime))) {
-                $array['error'] = 'The selected datetime must be equal or bigger than today (now)';
+            if ($sentNow < $minDate || $sentNow > $maxDate) {
+                $array['error'] = 'You may not get an appointment from future (or past)';
             } else {
                 $service = $data['service'];
 
