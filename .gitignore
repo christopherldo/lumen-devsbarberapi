@@ -1,7 +1,7 @@
 /vendor
 /.idea
 /public/media/avatars/*.webp
-/public/barber-avatars/*.webp
+/public/media/barber-avatars/*.webp
 Homestead.json
 Homestead.yaml
 .env
