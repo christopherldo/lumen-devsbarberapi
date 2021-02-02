@@ -31,7 +31,7 @@ class SearchController extends Controller
             $barbers = Barber::where('name', 'LIKE', '%' . $q . '%')->get();
 
             foreach ($barbers as $key => $value) {
-                $barbers[$key]['avatar'] = url('/media/avatars/' . $barbers[$key]['avatar']);
+                $barbers[$key]['avatar'] = url('/media/barber-avatars/' . $barbers[$key]['avatar']);
             };
 
             $array['list'] = $barbers;

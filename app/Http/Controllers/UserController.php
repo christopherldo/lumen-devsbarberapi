@@ -177,11 +177,12 @@ class UserController extends Controller
             'list' => []
         ];
 
-        $favs = UserFavorite::where('id_user', $this->loggedUser['public_id'])->get();
+        $favs = UserFavorite::where('id_user', $this->loggedUser['public_id'])
+            ->get();
 
         foreach ($favs as $fav) {
             $barber = Barber::where('public_id', $fav['id_barber'])->first();
-            $barber->avatar = url('/media/avatars/' . $barber->avatar);
+            $barber->avatar = url('/media/barber-avatars/' . $barber->avatar);
             $array['list'][] = $barber;
         };
 
@@ -207,42 +208,35 @@ class UserController extends Controller
             $array['error'] = $validator->errors();
         } else {
             $sentNow = new DateTime(date('Y-m-d H:i:s', strtotime($data['now'])));
-            $realNow = new DateTime(gmdate('Y-m-d H:i:s'));
+            $minDate = new DateTime(gmdate('Y-m-d H:i:s', strtotime('-12 hours')));
+            $maxDate = new DateTime(gmdate('Y-m-d H:i:s', strtotime('+14 hours')));
 
-            $diffTime = date_diff($sentNow, $realNow);
+            if ($sentNow < $minDate || $sentNow > $maxDate) {
+                $array['error'] = 'You may not get your appointments if you are living in the future (or past)';
+            } else {
+                $apps = UserAppointment::where('id_user', $this->loggedUser['public_id'])
+                    ->where('ap_datetime', '>=', $sentNow->format('Y-m-d H:i:s'))
+                    ->orderBy('ap_datetime', 'ASC')->get();
 
-            $timezone = $diffTime->h;
+                foreach ($apps as $app) { {
+                        $barber = Barber::where('public_id', $app['id_barber'])
+                            ->first();
+                        $barber->avatar = url('/media/barber-avatars/' . $barber->avatar);
 
-            if ($sentNow < $realNow) {
-                $timezone = '-' . $timezone;
-            };
+                        $service = BarberService::where('public_id', $app['id_service'])
+                            ->first();
 
-            $apps = UserAppointment::where('id_user', $this->loggedUser['public_id'])
-                ->orderBy('ap_datetime', 'DESC')->get();
+                        if ($service->photo) {
+                            $service->photo = url('/media/uploads/' . $service->photo);
+                        };
 
-            foreach ($apps as $app) {
-                if (($diffTime->h >= -12 &&
-                        $diffTime->h <= 14 &&
-                        $diffTime->d === 0 &&
-                        $diffTime->m === 0 &&
-                        $diffTime->y === 0) &&
-                    gmdate('Y-m-d H:i:s', strtotime("$timezone hours")) < date('Y-m-d H:i:s', strtotime($app->ap_datetime))
-                ) {
-                    $barber = Barber::where('public_id', $app['id_barber'])->first();
-                    $barber->avatar = url('/media/avatars/' . $barber->avatar);
-
-                    $service = BarberService::where('public_id', $app['id_service'])->first();
-
-                    if ($service->photo) {
-                        $service->photo = url('/media/uploads/' . $service->photo);
+                        $array['list'][] = [
+                            'public_id' => $app->public_id,
+                            'datetime' => $app->ap_datetime,
+                            'barber' => $barber,
+                            'service' => $service
+                        ];
                     };
-
-                    $array['list'][] = [
-                        'public_id' => $app->public_id,
-                        'datetime' => $app->ap_datetime,
-                        'barber' => $barber,
-                        'service' => $service
-                    ];
                 };
             };
         };
@@ -279,7 +273,8 @@ class UserController extends Controller
             $password = $data['password'] ?? '';
             $telephone = $data['telephone'] ?? '';
 
-            $user = User::where('public_id', $this->loggedUser['public_id'])->first();
+            $user = User::where('public_id', $this->loggedUser['public_id'])
+                ->first();
 
             if ($name) {
                 $user->name = $name;
@@ -335,7 +330,8 @@ class UserController extends Controller
             $img = $manager->make($avatar->getRealPath())->fit(300, 300);
             $img->save($dest);
 
-            $user = User::where('public_id', $this->loggedUser['public_id'])->first();
+            $user = User::where('public_id', $this->loggedUser['public_id'])
+                ->first();
             $user->avatar = $avatarName;
             $user->save();
         };
