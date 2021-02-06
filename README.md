@@ -1,24 +1,17 @@
-# Lumen PHP Framework
+# How to RUN
 
-[![Build Status](https://travis-ci.org/laravel/lumen-framework.svg)](https://travis-ci.org/laravel/lumen-framework)
-[![Total Downloads](https://img.shields.io/packagist/dt/laravel/framework)](https://packagist.org/packages/laravel/lumen-framework)
-[![Latest Stable Version](https://img.shields.io/packagist/v/laravel/framework)](https://packagist.org/packages/laravel/lumen-framework)
-[![License](https://img.shields.io/packagist/l/laravel/framework)](https://packagist.org/packages/laravel/lumen-framework)
+* ```mv .env.example .env``` to copy the env example to a real .env;
+* Go to .env file and configure your database (DB section);
+* If you want to use coordinates, you might put your Google Geolocation API key on variable MAPS_KEY on .env file;
+* ```composer install``` or ```php composer.phar install``` to install all needed libraries;
+* ```php artisan jwt:secret``` to generate the JWT secret key;
+* ```php artisan migrate``` to create database tables and colums;
+* ```php -S 127.0.0.1:8000 -t public``` to start the server;
+* Make a POST on <a>127.0.0.1:8000/user</a> with query parameters: name, email, password and password_confirmation - to create your user;
+* Get the token it'll send you back and use it on all other requests - On Headers (Authorization: Bearer <_TOKEN_>), or as a query parameter (?token=<_TOKEN_>);
 
-Laravel Lumen is a stunningly fast PHP micro-framework for building web applications with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Lumen attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as routing, database abstraction, queueing, and caching.
+# BONUS
 
-## Official Documentation
-
-Documentation for the framework can be found on the [Lumen website](https://lumen.laravel.com/docs).
-
-## Contributing
-
-Thank you for considering contributing to Lumen! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Lumen, please send an e-mail to Taylor Otwell at taylor@laravel.com. All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Lumen framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+If you want some "random Barbers" to visualize, you can go on ./routes/web.php and uncomment the line 24. Make a GET on <127.0.0.1:8000/random> then comment the line again. This way it'll create random barber informations and you can use it to manipulate.
+<br>
+Thanks everybody. ❤️

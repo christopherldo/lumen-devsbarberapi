@@ -49,7 +49,7 @@ class CreateAllTables extends Migration
             $table->decimal('stars', 2, 1)->default(0.0);
             $table->decimal('latitude', 8, 6)->nullable();
             $table->decimal('longitude', 9, 6)->nullable();
-            $table->string('email', 50)->unique();
+            $table->string('email', 50)->unique()->nullable();
             $table->string('telephone', 25)->unique()->nullable();
             $table->boolean('verified')->default(0);
             $table->string('password', 255);

@@ -8,6 +8,11 @@ use App\Models\Barber;
 
 class SearchController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+    }
+
     public function search(Request $request)
     {
         $array = [
